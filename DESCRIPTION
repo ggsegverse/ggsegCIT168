@@ -1,0 +1,39 @@
+Package: ggsegCIT168
+Title: CIT168 Subcortical Atlas for the 'ggsegverse' Ecosystem
+Version: 0.0.0.9000
+Authors@R: c(person("Athanasia Mo", "Mowinckel",
+                    email = "a.m.mowinckel@psykologi.uio.no",
+                    role = c("aut", "cre"),
+                    comment = c(ORCID = "0000-0002-5756-0223")),
+            person("Didac", "Vidal-Pineiro",
+                    email = "d.v.pineiro@psykologi.uio.no",
+                    role = c("aut"),
+                    comment = c(ORCID = "0000-0001-9997-9156")),
+            person("Center for Lifespan Changes in Brain and Cognition (LCBC), University of Oslo",
+                    role = "cph"))
+Description: CIT168 probabilistic subcortical atlas (Pauli et al. 2018) for
+    the 'ggseg' ecosystem. Provides a 'ggseg_atlas' object with 2D polygon
+    geometry and 3D mesh data, covering the striatum, pallidum and the small
+    midbrain and diencephalic nuclei, for use with 'ggseg' and 'ggseg3d'.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1)
+Imports:
+    ggseg.formats
+Suggests:
+    ggseg,
+    ggseg3d,
+    ggplot2,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    vdiffr
+Remotes:
+    ggsegverse/ggseg
+URL: https://github.com/ggsegverse/ggsegCIT168
+BugReports: https://github.com/ggsegverse/ggsegCIT168/issues
+Roxygen: list(markdown = TRUE)
+Config/testthat/edition: 3
+Config/Needs/website: ggsegverse/ggseg.docs
+Config/roxygen2/version: 8.1.0
