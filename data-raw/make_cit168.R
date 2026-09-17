@@ -74,7 +74,7 @@ region_names <- c(
 # The `region` a label strips down to: what the pipeline derives, and what the
 # `name` column is keyed on.
 strip_to_region <- function(label) {
-  tolower(gsub("_", " ", sub("_(Left|Right)$", "", label)))
+  tolower(gsub("_", " ", sub("_(Left|Right)$", "", label), fixed = TRUE))
 }
 
 # One colour per structure, shared by the two sides, so a structure reads as

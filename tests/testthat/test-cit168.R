@@ -39,7 +39,8 @@ describe("cit168()", {
 
   it("derives region as a plain strip of the label", {
     core <- cit168()$core
-    stripped <- tolower(gsub("_", " ", sub("_(Left|Right)$", "", core$label)))
+    bare <- sub("_(Left|Right)$", "", core$label)
+    stripped <- tolower(gsub("_", " ", bare, fixed = TRUE))
     expect_identical(core$region, stripped)
   })
 
