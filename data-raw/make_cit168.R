@@ -11,8 +11,8 @@
 # fsaverage5 aseg with prepare_subcortical_mni152(), which registers it
 # through the fixed mni152.register.dat transform, replaces the lumped aseg
 # structures it subdivides, and returns a merged volume plus colour table for
-# the subcortical pipeline. aseg_context() then demotes the surrounding brain
-# to grey, leaving the parcels drawn on the cortical ribbon.
+# the subcortical pipeline, with the surrounding brain declared as grey
+# anatomical context so the parcels read against the cortical ribbon.
 #
 # Source: https://github.com/anniegbryant/subcortex_visualization
 #   (atlas_info/MNI152NLin6Asym/CIT168_subcortex), originally
@@ -71,12 +71,6 @@ region_names <- c(
   sth = "Subthalamic nucleus"
 )
 
-# The `region` a label strips down to: what the pipeline derives, and what the
-# `name` column is keyed on.
-strip_to_region <- function(label) {
-  tolower(gsub("_", " ", sub("_(Left|Right)$", "", label), fixed = TRUE))
-}
-
 # One colour per structure, shared by the two sides, so a structure reads as
 # the same thing on both halves of the plot.
 structure_colours <- function(structure) {
@@ -100,7 +94,11 @@ read_cit168_lut <- function() {
   }
 
   structure <- sub("_(LH|RH)$", "", lookup$name)
-  unknown <- setdiff(strip_to_region(structure), names(region_names))
+  label <- paste(structure, hemi, sep = "_")
+
+  # Validated against the label rather than the bare structure, since the
+  # label is what the pipeline derives `region` from.
+  unknown <- setdiff(label_to_region(label), names(region_names))
   if (length(unknown)) {
     cli::cli_abort("No spelled-out name for {.val {unknown}}.")
   }
@@ -109,7 +107,7 @@ read_cit168_lut <- function() {
 
   data.frame(
     idx = as.integer(lookup$idx) + id_offset,
-    label = paste(structure, hemi, sep = "_"),
+    label = label,
     R = as.integer(rgb[1, ]),
     G = as.integer(rgb[2, ]),
     B = as.integer(rgb[3, ]),
@@ -124,7 +122,7 @@ read_cit168_lut <- function() {
 # background the rest sits on and the only geometry present in every view.
 draw_order <- function(atlas) {
   drawn <- atlas_geom(atlas)$label
-  is_silhouette <- grepl("^cortex", drawn)
+  is_silhouette <- drawn %in% ggseg.formats::atlas_context(atlas)
   by_structure <- function(x) {
     x[order(
       toupper(sub("_(Left|Right)$", "", x)),
@@ -191,13 +189,33 @@ raw <- create_subcortical_from_volume(
 # ribbon whose detail *is* the anatomy, and smoothing it that hard closes the
 # sulci and fills the interior back in.
 cit168 <- raw |>
-  aseg_context(focus = paste(lut$label, collapse = "|"), match_on = "label") |>
+  # `prepare_subcortical_mni152()` declares every `aseg` structure it kept as
+  # context, the cerebral white matter included, so the inside of the cortical
+  # ribbon arrives filled in and reads as a blob. Punch it out, then drop the
+  # structures this atlas does not want behind its parcels. The punch comes
+  # first: remove the white matter and there is nothing left to subtract.
+# Only the cerebral white matter goes; the cerebellar white matter stays, or
+# the cerebellum thins to a sliver instead of reading as a solid structure.
+  ggseg.formats::atlas_region_op(
+    x = "Cerebral-Cortex$",
+    y = "Cerebral-White-Matter$",
+    action = "difference",
+    into = "cortex"
+  ) |>
+  ggseg.formats::atlas_region_remove(
+    paste(
+      "Cerebral-Cortex$", "Cerebral-White-Matter", "WM-hypointensities",
+      "-Ventricle", "-Vent$", "CSF", "choroid-plexus", "vessel", "CC_",
+      sep = "|"
+    ),
+    match_on = "label"
+  ) |>
   atlas_view_gather() |>
-  atlas_dilate(0.6, exclude = "^cortex") |>
-  atlas_simplify(keep = 0.2, labels = "^cortex") |>
-  atlas_simplify(keep = 0.35, exclude = "^cortex") |>
-  atlas_smooth(smoothness = 0.3, labels = "^cortex") |>
-  atlas_smooth(smoothness = 0.9, exclude = "^cortex") |>
+  atlas_dilate(0.6, exclude = ggseg.formats::context()) |>
+  atlas_simplify(keep = 0.2, labels = ggseg.formats::context()) |>
+  atlas_simplify(keep = 0.35, exclude = ggseg.formats::context()) |>
+  atlas_smooth(smoothness = 0.3, labels = ggseg.formats::context()) |>
+  atlas_smooth(smoothness = 0.9, exclude = ggseg.formats::context()) |>
   draw_order()
 
 cit168 <- atlas_core_add(
